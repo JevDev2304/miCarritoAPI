@@ -1,4 +1,6 @@
 import os
+
+
 from dotenv import load_dotenv
 import psycopg
 from psycopg.errors import UniqueViolation
@@ -48,7 +50,7 @@ async def execute_query(query: str, params: tuple = ()):
             raise e
         except Exception as e:
             print(f"Error al ejecutar la consulta: {e}")
-            return None
+            raise e
         finally:
             # Cerrar la conexión después de la ejecución
             await connection.close()
