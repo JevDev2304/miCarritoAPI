@@ -9,9 +9,9 @@ productsRouter = APIRouter(prefix="/products",
 
 @productsRouter.post('/',status_code=status.HTTP_201_CREATED)
 async def create_product(createProductDto: CreateProductDTO):
-    query = 'INSERT INTO products (name, description, image, price,discount,stock) VALUES (%s, %s, %s, %s,%s,%s) RETURNING *'
+    query = 'INSERT INTO products (name, description, image, price,discount,stock,category) VALUES (%s, %s, %s, %s,%s,%s, %s) RETURNING *'
     params = (createProductDto.name, createProductDto.description, createProductDto.image,
-              createProductDto.price,createProductDto.discount,createProductDto.stock)
+              createProductDto.price,createProductDto.discount,createProductDto.stock,createProductDto.category)
     try:
         products = await execute_query(query, params)
         return products[0]
@@ -48,7 +48,7 @@ async def delete_product_by_id(product_id: int):
         )
 
 @productsRouter.put('/',status_code=status.HTTP_200_OK)
-async def update_user(updateProductDto: UpdateProductDTO):
+async def update_product(updateProductDto: UpdateProductDTO):
     if updateProductDto.discount is not None:
         if 0 > updateProductDto.discount or updateProductDto.discount > 100:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='The discount cannot be less than 0 or greater than 100')
@@ -69,13 +69,16 @@ async def update_user(updateProductDto: UpdateProductDTO):
         updateProductDto.discount = product['discount']
     if updateProductDto.stock is None:
         updateProductDto.stock = product['stock']
+    if updateProductDto.category is None:
+        updateProductDto.category = product['category']
+
 
     before_update_product.update(**dict(updateProductDto))
     try:
-        query = 'UPDATE products SET  name=%s, description=%s, image=%s, price=%s, discount=%s, stock=%s  WHERE id = %s RETURNING *'
+        query = 'UPDATE products SET  name=%s, description=%s, image=%s, price=%s, discount=%s, stock=%s, category=%s  WHERE id = %s RETURNING *'
         params = (
         before_update_product['name'],before_update_product['description'],before_update_product['image'],
-        before_update_product['price'],before_update_product['discount'],before_update_product['stock'],before_update_product['id'])
+        before_update_product['price'],before_update_product['discount'],before_update_product['stock'],before_update_product['category'],before_update_product['id'])
         await execute_query(query, params)
         return before_update_product
     except Exception as e:
@@ -87,6 +90,37 @@ async def search_product_by_name(product_name: str):
     # Modifica el parámetro para incluir comodines y hacer la búsqueda parcial
     query = 'SELECT * FROM products WHERE name LIKE %s'
     params = (f"%{product_name}%",)
+
+    # Ejecuta la consulta
+    products = await execute_query(query, params)
+
+    # Verifica si se encontraron productos
+    if products:
+        return products  # Devuelve todos los productos encontrados
+    else:
+        return []
+
+
+@productsRouter.get('/searchByCategory/{product_category}', status_code=status.HTTP_200_OK)
+async def search_product_by_category(product_category: str):
+    # Modifica el parámetro para incluir comodines y hacer la búsqueda parcial
+    query = 'SELECT * FROM products WHERE category LIKE %s'
+    params = (f"%{product_category}%",)
+
+    # Ejecuta la consulta
+    products = await execute_query(query, params)
+
+    # Verifica si se encontraron productos
+    if products:
+        return products  # Devuelve todos los productos encontrados
+    else:
+        return []
+
+@productsRouter.get('/searchByPrice/{max_price}', status_code=status.HTTP_200_OK)
+async def search_product_by_max_price(max_price: int):
+    # Modifica el parámetro para incluir comodines y hacer la búsqueda parcial
+    query = 'SELECT * FROM products WHERE price <=  %s'
+    params = (max_price,)
 
     # Ejecuta la consulta
     products = await execute_query(query, params)

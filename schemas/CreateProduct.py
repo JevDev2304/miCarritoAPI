@@ -6,5 +6,7 @@ class CreateProductDTO(BaseModel):
     description: str
     image: str
     price: int
+    category: str
     discount: Optional[int] = 0
     stock : Optional[int] = 100
+
